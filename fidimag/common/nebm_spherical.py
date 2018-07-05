@@ -137,7 +137,7 @@ class NEBM_Spherical(NEBMBase):
                  initial_images, interpolations=None,
                  spring_constant=1e5,
                  name='unnamed',
-                 climbing_image=None,
+                 climbing_images=[],
                  openmp=False
                  ):
 
@@ -146,7 +146,7 @@ class NEBM_Spherical(NEBMBase):
                                              interpolations=interpolations,
                                              spring_constant=spring_constant,
                                              name=name,
-                                             climbing_image=climbing_image,
+                                             climbing_images=climbing_images,
                                              dof=2,
                                              openmp=openmp
                                              )
@@ -293,7 +293,7 @@ class NEBM_Spherical(NEBMBase):
                                           self.tangents,
                                           self.gradientE,
                                           self.spring_force,
-                                          self.climbing_image,
+                                          self._climbing_images,
                                           self.n_images,
                                           self.n_dofs_image
                                           )

@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 from __future__ import division
 import numpy as np
 
@@ -157,7 +158,7 @@ class NEBM_Geodesic(NEBMBase):
                  interpolation_method='linear',
                  spring_constant=1e5,
                  name='unnamed',
-                 climbing_image=None,
+                 climbing_images=[],
                  openmp=False
                  ):
 
@@ -166,7 +167,7 @@ class NEBM_Geodesic(NEBMBase):
                                             interpolations=interpolations,
                                             spring_constant=spring_constant,
                                             name=name,
-                                            climbing_image=climbing_image,
+                                            climbing_images=climbing_images,
                                             dof=3,
                                             openmp=openmp
                                             )
@@ -321,7 +322,7 @@ class NEBM_Geodesic(NEBMBase):
                                           self.tangents,
                                           self.gradientE,
                                           self.spring_force,
-                                          self.climbing_image,
+                                          self._climbing_images,
                                           self.n_images,
                                           self.n_dofs_image
                                           )

@@ -9,7 +9,7 @@ void sd_update_spin (double *spin, double *spin_last, double *magnetisation,
     #pragma omp parallel for
     for (int i = 0; i < n; i++) {
 
-        if (magnetisation[i] > 0.0) {
+        if (magnetisation[i] > 0.0 && pins[i] < 1) {
 
             int spin_idx;
             double mxH_sq;
@@ -51,7 +51,7 @@ void sd_compute_step (double *spin, double *spin_last, double *magnetisation, do
     #pragma omp parallel for
     for (int i = 0; i < n; i++) {
 
-        if (magnetisation[i] > 0.0) {
+        if (magnetisation[i] > 0.0 && pins[i] < 1) {
             int spin_idx;
             double ds[3], dy[3];
             double num, den, res, sign;

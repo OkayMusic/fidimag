@@ -105,10 +105,14 @@ class NEBMBase(object):
     initial_images      :: A sequence of arrays or functions to set up the
                            magnetisation field profile
 
-    inteprolations      ::
+    interpolations      ::
 
     dof                 :: Degrees of freedom per spin. Spherical coordinates
                            have dof=2 and Cartesian have dof=3
+
+    climbing_images     :: A list with the image indexes of the climbing images
+                           For example, if images 4, and 7 are specified as CIs
+                           then climbing_images = [4, 7]
 
     VARIABLES -----------------------------------------------------------------
 
@@ -161,13 +165,21 @@ class NEBMBase(object):
                                  scaled norm.
         self.n_dofs_image_material :: Number of dofs where mu_s or Ms > 0
                                       (in a single image)
+        self._climbing_images :: Array of -1 values with length self.n_images.
+                                 Values of array elements with indexes of climbing
+                                 images are set to 1, e.g. if n_images=6 and
+                                 images 2 and 4 are specified as climb. images:
+                                 self._climbing_images = [-1, -1, +1, -1, +1, -1]
+
+                                 This array is created with the self.climbing_images
+                                 property
 
     """
     def __init__(self, sim,
                  initial_images, interpolations=None,
                  spring_constant=1e5,
                  name='unnamed',
-                 climbing_image=None,
+                 climbing_images=[],
                  dof=2,
                  openmp=False
                  ):
@@ -235,13 +247,9 @@ class NEBMBase(object):
 
         # Climbing Image ------------------------------------------------------
 
-        if climbing_image is None:
-            self.climbing_image = -1
-        elif climbing_image in range(self.n_images):
-            self.climbing_image = climbing_image
-        else:
-            raise ValueError('The climbing image must be in the band. '
-                             'Specify a valid integer.')
+        # Calling the climbing_images property (it sets the self._climbing_images
+        # arrays made of -1 values for images and 1 for climbing images)
+        self.climbing_images = climbing_images
 
         # NEBM Arrays ---------------------------------------------------------
         # We will initialise every array using the total number of images,
@@ -268,6 +276,20 @@ class NEBMBase(object):
         self.last_Y = np.zeros_like(self.band)
 
         # ---------------------------------------------------------------------
+
+    @property
+    def climbing_images(self):
+        return self._climbing_images
+
+    @climbing_images.setter
+    def climbing_images(self, ims_list):
+        self._climbing_images = -1 * np.ones(self.n_images, dtype=np.int32)
+        for im in ims_list:
+            if im in range(self.n_images):
+                self._climbing_images[im] = 1
+            else:
+                raise ValueError('The climbing image {} must be in the band. '
+                                 'Specify a valid integer.'.format(im))
 
     def initialise_energies(self):
         pass
