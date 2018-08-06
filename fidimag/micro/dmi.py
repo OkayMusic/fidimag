@@ -75,11 +75,10 @@ class DMI(Energy):
 
     """
 
-    def __init__(self, D, name='DMI', dmi_type='bulk', D2=None):
+    def __init__(self, D, name='DMI', dmi_type='bulk'):
         """
         """
         self.D = D
-        self.D2 = D2
         self.name = name
         self.jac = True
         self.dmi_type = dmi_type
@@ -90,19 +89,12 @@ class DMI(Energy):
             raise Exception(
                 "Unsupported DMI type: {}, " +
                 "available options: ".format(self.dmi_type) +
-                "'bulk', 'interfacial', 'D_2d'."
+                "'bulk', 'interfacial', 'D_2d', 'C_n', 'D_2d'."
                 )
-
-
-        if self.dmi_type == 'D_n' or self.dmi_type == 'C_n':
-            if not self.D2:
-                raise Exception("For C_n and D_n symmetry, you must also pass a D2 value"
-                                 " as this material class has multiple DMI constants")
 
 
     def setup(self, mesh, spin, Ms, Ms_inv):
         super(DMI, self).setup(mesh, spin, Ms, Ms_inv)
-        self.Ds = helper.init_scalar(self.D, self.mesh)
         if self.dmi_type == 'bulk':
             self.dmi_vector = np.array([-1., 0, 0,
                                    1., 0, 0,
@@ -131,7 +123,7 @@ class DMI(Energy):
                                    ])
 
         elif self.dmi_type == 'D_n':
-            self.dmi_vector = np.array([1, 0, 0, # D1 components
+            self.dmi_vector = np.array([1.0, 0, 0, # D1 components
                                    -1, 0, 0,
                                    0, -1, 0,
                                    0, 1, 0,
@@ -141,24 +133,31 @@ class DMI(Energy):
                                    0, 0, 0,
                                    0, 0, 0,
                                    0, 0, 0,
-                                   0, 0, 1,
                                    0, 0, -1,
+                                   0, 0, 1,
                                   ])
 
         elif self.dmi_type == 'C_n':
-            dmi_vector = np.array([0, -1, 0, # D1 components
+            self.dmi_vector = np.array([0, -1., 0, # D1 components
                                     0, 1, 0,
                                     1, 0, 0,
                                     -1, 0, 0,
                                     0, 0, 0,
                                     0, 0, 0,
                                     1, 0, 0, # D2 components
+                                    -1, 0, 0,
                                     0, -1, 0,
-                                    0, 0, 0,
-                                    0, 0, 0,
+                                    0, 1, 0,
                                     0, 0, 0,
                                     0, 0, 0,
                                   ])
+
+        if self.dmi_type == 'C_n' or self.dmi_type == 'D_n':
+            self.n_dmi_consts = 2
+            self.Ds = helper.init_vector(self.D, self.mesh, 2)
+        else:
+            self.n_dmi_consts = 1
+            self.Ds = helper.init_scalar(self.D, self.mesh)
 
     def compute_field(self, t=0, spin=None):
         if spin is not None:
@@ -168,38 +167,18 @@ class DMI(Energy):
 
 
 
-        if self.dmi_type == 'D_n' or self.dmi_type == 'C_n':
-            # Now have two vaues for D,
-            # so what we can do is intersperse the D values, i.e.
-            # [D^1_0, D^2_0, D^1_1, D^2_1, ... D^1_n, D^2_n]
-            # So to address cell i's values, you can use
-            # D1 = 2*i
-            # D2 = 2*i + 1
-            micro_clib.compute_dmi_field_multivalued_D(m,
-                                                       self.field,
-                                                       self.energy,
-                                                       self.Ms_inv,
-                                                       self.Ds,
-                                                       self.Ds2,
-                                                       self.dmi_vector,
-                                                       self.dx,
-                                                       self.dy,
-                                                       self.dz,
-                                                       self.n,
-                                                       self.neighbours
-                                                       )
-        else:
-            micro_clib.compute_dmi_field(m,
-                                         self.field,
-                                         self.energy,
-                                         self.Ms_inv,
-                                         self.Ds,
-                                         self.dmi_vector,
-                                         self.dx,
-                                         self.dy,
-                                         self.dz,
-                                         self.n,
-                                         self.neighbours
-                                         )
+        micro_clib.compute_dmi_field(m,
+                                     self.field,
+                                     self.energy,
+                                     self.Ms_inv,
+                                     self.n_dmi_consts,
+                                     self.Ds,
+                                     self.dmi_vector,
+                                     self.dx,
+                                     self.dy,
+                                     self.dz,
+                                     self.n,
+                                     self.neighbours
+                                     )
 
         return self.field
