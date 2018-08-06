@@ -16,7 +16,7 @@ inline double cross_z(double a0, double a1, double a2,
 void compute_exch_field_micro(double *restrict m, double *restrict field, double *restrict energy, double *restrict Ms_inv,
                          double A, double dx, double dy, double dz, int n, int *ngbs);
 
-void dmi_field(double *restrict m, double *restrict field, double *restrict energy, double *restrict Ms_inv,
+void dmi_field(double *restrict m, double *restrict field, double *restrict energy, double *restrict Ms_inv, int n_dmi_consts,
                double *restrict D, double *dmi_vector, double dx, double dy, double dz, int n, int *ngbs);
 
 void compute_exch_field_rkky_micro(double *m, double *field, double *energy, double *Ms_inv,

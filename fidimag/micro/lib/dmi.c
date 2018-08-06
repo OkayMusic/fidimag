@@ -1,7 +1,7 @@
 #include "micro_clib.h"
 #include <stdlib.h>
 #include <math.h>
-
+#include<stdio.h>
 /* Functions to Compute the micromagnetic Dzyaloshinskii Moriya interaction
  *  field and energy using the
  * matrix of neighbouring spins and a second order approximation
@@ -257,15 +257,15 @@
  *
 */
 void dmi_field(double *restrict m, double *restrict field, double *restrict energy, double *restrict Ms_inv,
-               double *restrict D, double *dmi_vector,
+               int n_dmi_consts, double *restrict D, double *dmi_vector,
                double dx, double dy, double dz,
                int n, int *restrict ngbs) {
-  
+
   /* These are for the DMI prefactor or coefficient */
   double dxs[6] = {dx, dx, dy, dy, dz, dz};
-  
   /* Here we iterate through every mesh node */
   for (int i = 0; i < n; i++) {
+
     double DMIc;
     double fx = 0, fy = 0, fz = 0;
     int idnm;     // Index for the magnetisation matrix
@@ -278,63 +278,65 @@ void dmi_field(double *restrict m, double *restrict field, double *restrict ener
       energy[i] = 0;
       continue;
     }
-    
-    /* Here we iterate through the neighbours. Remember:
-     * j = 0, 1, 2, 3, 4, 5  --> -x, +x, -y, +y, -z, +z
-     Previously we had n_dmi_neighbours as a parameter,
-     but now we just skip if the vector entries are zero
-     instead, because we can have cases such as in D_n
-     where the D1 component has -x,+x,-y,+y,0,0
-     and the D2 component has 0,0,0,0,-z,+z.
-    */
-    
+
+    // Here we iterate through the neighbours. Remember:
+    // j = 0, 1, 2, 3, 4, 5  --> -x, +x, -y, +y, -z, +z
     for (int j = 0; j < 6; j++) {
-      /* We skip the neighbour if
-	 (a) it doesn't exist (ngbs[idn + j] = -1)
-	 (b) there is no material there
-	 (c) DMI value is zero there
-      */
-      if ((ngbs[idn + j] != -1) && (Ms_inv[ngbs[idn + j]] !=  0)) {
-	/* We do here:  -(D / dx_i) * ( r_{ij} X M_{j} )
-	 * The cross_i function gives the i component of the
-	 * cross product. The coefficient is computed according
-	 * to the DMI strength of the current lattice site.
-	 * For the denominator, for example, if j=2 or 3, then
-	 * dxs[j] = dy
-	 
-	 /* check the DMI vector exists */
-	if ((dmi_vector[3 * j] != 0 ||  dmi_vector[3*j+1] != 0 ||  dmi_vector[3*j + 2] != 0) > 0) {
-	  /* The x component of the cross product of +-x
-	   * times anything is zero (similar for the other comps) */
-		  
-	  DMIc = -D[ngbs[idn + j]] / dxs[j]; // Get DMI constant from neighbour and scale
-	  idnm = 3 * ngbs[idn + j]; // index for magnetisation
-	  
-	  fx += DMIc * cross_x(dmi_vector[3 * j],
-			       dmi_vector[3 * j + 1],
-			       dmi_vector[3 * j + 2],
-			       m[idnm], m[idnm + 1], m[idnm + 2]);
-	  fy += DMIc * cross_y(dmi_vector[3 * j],
-			       dmi_vector[3 * j + 1],
-			       dmi_vector[3 * j + 2],
-			       m[idnm], m[idnm + 1], m[idnm + 2]);
-	  fz += DMIc * cross_z(dmi_vector[3 * j],
-			       dmi_vector[3 * j + 1],
-			       dmi_vector[3 * j + 2],
-			       m[idnm], m[idnm + 1], m[idnm + 2]);
-		  
-	}
+        /* We skip the neighbour if
+         (a) it doesn't exist (ngbs[idn + j] = -1)
+         (b) there is no material there
+         (c) DMI value is zero there
+        */
+          // printf("dmi_vector indices = %d, %d, %d\n", 18 * n_const + 3 * j, 18 * n_const + 3 * j + 1, 18 * n_const + 3 * j + 2);
+
+          if ((ngbs[idn + j] != -1) && (Ms_inv[ngbs[idn + j]] >  0)) {
+            for(int n_const = 0; n_const < n_dmi_consts; n_const++) {
+          	/* We do here:  -(D / dx_i) * ( r_{ij} X M_{j} )
+          	 * The cross_i function gives the i component of the
+          	 * cross product. The coefficient is computed according
+          	 * to the DMI strength of the current lattice site.
+          	 * For the denominator, for example, if j=2 or 3, then
+          	 * dxs[j] = dy
+      	     /* check the DMI vector exists */
+        	   if (dmi_vector[18 * n_const + 3 * j + 0] != 0 ||
+                 dmi_vector[18 * n_const + 3 * j + 0] != 0 ||
+                 dmi_vector[18 * n_const + 3 * j + 0] != 0) {
+          	 //* The x component of the cross product of +-x
+          	 //* times anything is zero (similar for the other comps) */
+          	  DMIc = -D[n_dmi_consts * ngbs[idn + j] + n_const] / dxs[j]; // Get DMI constant from neighbour and scale
+          	  idnm = 3 * ngbs[idn + j]; // index for neighbour's magnetisation
+          	  fx += DMIc * cross_x(dmi_vector[18 * n_const + 3 * j + 0],
+          			                   dmi_vector[18 * n_const + 3 * j + 1],
+          			                   dmi_vector[18 * n_const + 3 * j + 2],
+          			                   m[idnm + 0],
+                                   m[idnm + 1],
+                                   m[idnm + 2]);
+
+          	  fy += DMIc * cross_y(dmi_vector[18 * n_const + 3 * j + 0],
+          			                   dmi_vector[18 * n_const + 3 * j + 1],
+          			                   dmi_vector[18 * n_const + 3 * j + 2],
+          			                   m[idnm + 0],
+                                   m[idnm + 1],
+                                   m[idnm + 2]);
+
+          	  fz += DMIc * cross_z(dmi_vector[18 * n_const * 3 * j + 0],
+          			                   dmi_vector[18 * n_const + 3 * j + 1],
+          			                   dmi_vector[18 * n_const + 3 * j + 2],
+          			                   m[idnm + 0],
+                                   m[idnm + 1],
+                                   m[idnm + 2]);
+
+
+          }
+        }
       }
     }
-    
     /* Energy as: (-mu0 * Ms / 2) * [ H_dmi * m ]   */
-    energy[i] = -0.5 * (fx * m[3 * i] + fy * m[3 * i + 1]
-			+ fz * m[3 * i + 2]);
-    
-    /* Update the field H_dmi which has the same structure than *m */
+    energy[i] = -0.5 * (fx * m[3 * i] + fy * m[3 * i + 1] + fz * m[3 * i + 2]);
+    /* Update the field H_dmi which has the same structure as *m */
     field[3 * i]     = fx * Ms_inv[i] * MU0_INV;
     field[3 * i + 1] = fy * Ms_inv[i] * MU0_INV;
     field[3 * i + 2] = fz * Ms_inv[i] * MU0_INV;
-    
+
   }
 }
